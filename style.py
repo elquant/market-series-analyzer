@@ -6,11 +6,13 @@ colors = {
 
 mainTitle = {
     'textAlign': 'center',
+    'margin-top': 20,
     'color': colors['blueText']
 }
 
 inputSectionTitle = {
     'textAlign': 'left',
+    'margin-left': 20,
     'color': colors['blueText']
 }
 
@@ -25,4 +27,9 @@ pageLayout = {
 statisticResultsTitles = {
     'textAlign': 'left',
     'color': colors['blueText']
+}
+
+inputSection = {
+    'margin-left': 20,
+    'padding': 0
 }

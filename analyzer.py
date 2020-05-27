@@ -9,19 +9,14 @@ from scipy import stats
 class TimeSeriesAnalyzer:
 
     def __init__(self, ticker_symbol, from_date, to_date):
-        self._ticker_symbol = ticker_symbol
-        self._from_date = from_date
-        self._to_date = to_date
-
-        df = dr.data.get_data_yahoo(self._ticker_symbol, start=self._from_date, end=self._to_date)
+        df = dr.data.get_data_yahoo(ticker_symbol, start=from_date, end=to_date)
         df = df[~df.index.duplicated()]
         df["Daily Return"] = df["Adj Close"].pct_change()
         df = df.iloc[1:]
 
         years = df["Daily Return"].count() / 252
         self.cagr = ((df['Adj Close'].iloc[-1] / df['Adj Close'].iloc[0]) ** (1 / years) - 1) * 100
-        self.buy_and_hold_return = ((df['Adj Close'].iloc[-1] - df['Adj Close'].iloc[0]) / df['Adj Close'].iloc[
-            0]) * 100
+        self.buy_and_hold_return = ((df['Adj Close'].iloc[-1] - df['Adj Close'].iloc[0]) / df['Adj Close'].iloc[0]) * 100
 
         previous_maximum = df["Adj Close"].cummax()
         drawdowns = ((df["Adj Close"] - previous_maximum) / previous_maximum) * 100
@@ -38,6 +33,8 @@ class TimeSeriesAnalyzer:
         self.kurtosis = df["Daily Return"].kurt()
 
         (mu, sigma) = stats.norm.fit(df['Daily Return'])
+        self.mu = mu
+        self.sigma = sigma
         self.var_gauss_95 = norm.ppf(0.05, mu, sigma) * 100
         self.var_gauss_99 = norm.ppf(0.01, mu, sigma) * 100
         self.var_gauss_99_7 = norm.ppf(0.003, mu, sigma) * 100
@@ -87,9 +84,7 @@ class TimeSeriesAnalyzer:
         return self.data['SMA_126_Volatilidad_Anualizada']
 
     def min_vol_date(self):
-        return self.data.Volatilidad_14_Dias_Anualizada[self.data.Volatilidad_14_Dias_Anualizada == self.data[
-            'Volatilidad_14_Dias_Anualizada'].min()].index.strftime('%Y-%m-%d').tolist()[0]
+        return self.data.Volatilidad_14_Dias_Anualizada[self.data.Volatilidad_14_Dias_Anualizada == self.data['Volatilidad_14_Dias_Anualizada'].min()].index.strftime('%Y-%m-%d').tolist()[0]
 
     def max_vol_date(self):
-        return self.data.Volatilidad_14_Dias_Anualizada[self.data.Volatilidad_14_Dias_Anualizada == self.data[
-            'Volatilidad_14_Dias_Anualizada'].max()].index.strftime('%Y-%m-%d').tolist()[0]
+        return self.data.Volatilidad_14_Dias_Anualizada[self.data.Volatilidad_14_Dias_Anualizada == self.data['Volatilidad_14_Dias_Anualizada'].max()].index.strftime('%Y-%m-%d').tolist()[0]

@@ -13,7 +13,7 @@ from datetime import date
 plt.style.use('seaborn-darkgrid')
 
 ticker_symbol = 'SPY'
-from_date = '1993-02-01'
+from_date = '2000-01-01'
 to_date = date.today()
 df = dr.data.get_data_yahoo(ticker_symbol, start=from_date, end=to_date)
 
