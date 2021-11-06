@@ -1,8 +1,8 @@
-FROM python:3.7
+FROM python:3.8
 
-WORKDIR /
+WORKDIR /usr/src/app
 
-COPY . /
+COPY . .
 
 RUN pip install --trusted-host pypi.python.org -r requirements.txt
 

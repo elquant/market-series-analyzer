@@ -9,7 +9,6 @@ from scipy.stats import norm
 from scipy import stats
 from datetime import date
 
-
 plt.style.use('seaborn-darkgrid')
 
 ticker_symbol = 'SPY'
@@ -18,109 +17,130 @@ to_date = date.today()
 df = dr.data.get_data_yahoo(ticker_symbol, start=from_date, end=to_date)
 
 df = df[~df.index.duplicated()]
-df.tail()
+print("Últimos valores del DataFrame sin duplicados:", df.tail(), sep='\n')
 
-df["Daily Return"] = df["Adj Close"].pct_change()
-df.tail()
+df['Daily Return'] = df['Adj Close'].pct_change()
+df['Daily Return (%)'] = df['Daily Return'] * 100
+print("Últimos valores del DataFrame incluyendo la tasa de cambio (aritmética y porcentual):", df.tail(), sep='\n')
 
 df = df.iloc[1:]
 
 plt.figure(figsize=(15, 8))
 sns.set(color_codes=True)
-ax = sns.distplot(df['Daily Return'], bins=100, kde=False, fit=stats.norm, color='green')
+ax = sns.displot(df['Daily Return'], bins=100, kde=False, hue_norm=stats.norm, color='green')
 
 (mu, sigma) = stats.norm.fit(df['Daily Return'])
 
-plt.title('Distribución Histórica de Retornos Diarios', fontsize=16)
-plt.ylabel('Frecuencia')
-plt.legend(["Distribución normal. fit ($\mu=${0:.2g}, $\sigma=${1:.2f})".format(mu, sigma), "Distribución R. Aritmeticos"])
+plt.title("Distribución Histórica de los Retornos Diarios", fontsize=16)
+plt.ylabel("Frecuencia")
+plt.legend(["Distr. normal. fit ($\\mu=${0:.2g}, $\\sigma=${1:.2f})".format(mu, sigma), "Distr. R. Aritméticos"])
 
-# Calculamos la Tasa de Crecimiento Anual Compuesto y el resultado de Comprar y mantener.
-years = df["Daily Return"].count() / 252
+# Calculamos la Tasa de Crecimiento Anual Compuesto (conocido como CAGR, del inglés).
+
+years = len(df) / 252
 cagr = (df['Adj Close'].iloc[-1] / df['Adj Close'].iloc[0]) ** (1 / years) - 1
-print('> Tasa de Crecimiento Anual Compuesto:', '%.6s' % (100 * cagr), '%')
-print('> Buy & Hold:', '%.6s' % (100 * ((df['Adj Close'].iloc[-1] - df['Adj Close'].iloc[0]) / df['Adj Close'].iloc[0])), '%')
+print("> Tasa de Crecimiento Anual Compuesto (CAGR):", '%.6s' % (100 * cagr), "%")
+
+# Calculamos el resultado de comprar y mantener.
+
+buy_and_hold_return = ((df['Adj Close'].iloc[-1] - df['Adj Close'].iloc[0]) / df['Adj Close'].iloc[0]) * 100
+print("> Buy & Hold:", '%.6s' % buy_and_hold_return, "%")
 
 # Calculamos el Máximo Drawdown.
-Maximo_Anterior = df["Adj Close"].cummax()
-drawdowns = 100*((df["Adj Close"] - Maximo_Anterior)/Maximo_Anterior)
-DD = pd.DataFrame({"Adj Close": df["Adj Close"], "Previous Peak": Maximo_Anterior, "Drawdown": drawdowns})
-print('> Máximo Drawdown Histórico:', '%.6s' % np.min(DD['Drawdown']), '%')
+
+previous_max = df['Adj Close'].cummax()
+drawdowns = ((df['Adj Close'] - previous_max) / previous_max) * 100
+DD = pd.DataFrame({'Adj Close': df['Adj Close'], 'Previous Peak': previous_max, 'Drawdown': drawdowns})
+print("> Máximo Drawdown Histórico:", '%.6s' % np.min(DD['Drawdown']), "%")
 
 # Obtenemos el promedio, desviación típica, máximo y mínimo valor y número de datos analizados:
-print('> Media Diaria:', '%.6s' % (100 * df["Daily Return"].mean()), '%')
-print('> Desviación Típica Diaria:', '%.6s' % (100 * df["Daily Return"].std(ddof=1)), '%')
-print('> Máxima Pérdida Diaria:', '%.6s' % (100 * df["Daily Return"].min()), '%')
-print('> Máximo Beneficio Diario:', '%.6s' % (100 * df["Daily Return"].max()), '%')
-print('> Dias Analizados:', '%.6s' % df["Daily Return"].count())
-print('<-------------------------------------------------->')
+
+print("> Media Diaria:", '%.6s' % (df['Daily Return'].mean() * 100), "%")
+print("> Desviación Típica Diaria:", '%.6s' % (df['Daily Return'].std(ddof=1) * 100), "%")
+print("> Máxima Pérdida Diaria:", '%.6s' % (df['Daily Return'].min() * 100), "%")
+print("> Máximo Beneficio Diario:", '%.6s' % (df['Daily Return'].max() * 100), "%")
+print("> Días Analizados:", '%.6s' % df['Daily Return'].count())
+print(">--------------------------------------------------")
 
 # Coeficiente de asimetría y curtosis de la distribución.
-print('> Coeficiente de Asimetría:', '%.6s' % df["Daily Return"].skew())
-print('> Curtosis:', '%.6s' % df["Daily Return"].kurt())
-print('<-------------------------------------------------->')
+
+print("> Coeficiente de Asimetría:", '%.6s' % df['Daily Return'].skew())
+print("> Curtosis:", '%.6s' % df['Daily Return'].kurt())
+print(">--------------------------------------------------")
 
 # VaR Teórico obtenido a través de la distribución normal al 95% y 99% de confianza.
-print('> VaR Modelo Gaussiano NC-95% :', '%.6s' % (100 * norm.ppf(0.05, mu, sigma)), '%')
-print('> VaR Modelo Gaussiano NC-99% :', '%.6s' % (100 * norm.ppf(0.01, mu, sigma)), '%')
-print('> VaR Modelo Gaussiano NC-99.7% :', '%.6s' % (100 * norm.ppf(0.003, mu, sigma)), '%')
+
+print("> VaR Modelo Gaussiano NC-95% :", '%.6s' % (norm.ppf(0.05, mu, sigma) * 100), "%")
+print("> VaR Modelo Gaussiano NC-99% :", '%.6s' % (norm.ppf(0.01, mu, sigma) * 100), "%")
+print("> VaR Modelo Gaussiano NC-99.7% :", '%.6s' % (norm.ppf(0.003, mu, sigma) * 100), "%")
 
 # VaR histórico al 95% y 99% de confianza.
-print('> VaR Modelo Historico NC-95% :', '%.6s' % (100 * np.percentile(df["Daily Return"], 5)), '%')
-print('> VaR Modelo Historico NC-99% :', '%.6s' % (100 * np.percentile(df["Daily Return"], 1)), '%')
-print('> VaR Modelo Historico NC-99.7% :', '%.6s' % (100 * np.percentile(df["Daily Return"], .3)), '%')
 
+print("> VaR Modelo Histórico NC-95% :", '%.6s' % (100 * np.percentile(df['Daily Return'], 5)), "%")
+print("> VaR Modelo Histórico NC-99% :", '%.6s' % (100 * np.percentile(df['Daily Return'], 1)), "%")
+print("> VaR Modelo Histórico NC-99.7% :", '%.6s' % (100 * np.percentile(df['Daily Return'], .3)), "%")
+print(">--------------------------------------------------")
 
 # Registramos Matplotlib converters para adatpar la fecha -DateTime- al método de dibujo de Matplotlib
+
 register_matplotlib_converters()
 
 # Calculamos la volatilidad histórica de 14 días, la volatilidad anualizada y su SMA de 252 días.
-df['Volatilidad_Historica_14_Dias'] = 100*df["Daily Return"].rolling(14).std()
-df['Volatilidad_14_Dias_Anualizada'] = df['Volatilidad_Historica_14_Dias'] * (252 ** 0.5)
-df['SMA_126_Volatilidad_Anualizada'] = df['Volatilidad_14_Dias_Anualizada'].rolling(126).mean()
+
+df['Vol. Historica 14 Dias'] = df['Daily Return'].rolling(14).std() * 100
+df['Vol. Anualizada'] = df['Vol. Historica 14 Dias'] * (252 ** 0.5)
+df['SMA 126 Vol. Anualizada'] = df['Vol. Anualizada'].rolling(126).mean()
 
 # Creamos un gráfico en el que mostramos el precio de cierre, la volatilidad anualizada y su SMA.
+
 fig, ax1 = plt.subplots(figsize=(15, 8))
 ax2 = ax1.twinx()
-ax1.plot(df['Volatilidad_14_Dias_Anualizada'], 'orange', linestyle='--')
-ax1.plot(df['SMA_126_Volatilidad_Anualizada'], 'Green', linestyle='-')
+ax1.plot(df['Vol. Anualizada'], 'orange', linestyle='--')
+ax1.plot(df['SMA 126 Vol. Anualizada'], 'green', linestyle='-')
 ax2.plot(df['Adj Close'], 'black')
 
-# Asingamos un nombre para el gráfico y para los ejes x e y.
-plt.title('Evolución Histórica del Precio y la Volatilidad', fontsize=16)
-ax1.set_xlabel('Fecha')
-ax1.set_ylabel('Volatilidad Anualizada', color='black')
-ax2.set_ylabel('Precio de Cierre', color='black')
+# Asignamos un nombre para el gráfico y para los ejes X e Y.
+
+plt.title("Evolución Histórica del Precio y la Volatilidad", fontsize=16)
+ax1.set_xlabel("Fecha")
+ax1.set_ylabel("Volatilidad Anualizada", color='black')
+ax2.set_ylabel("Precio de Cierre", color='black')
 
 # Configuramos la leyenda, las líneas de cuadrícula y mostramos el gráfico.
+
 ax1.legend(loc='upper left', frameon=True, borderpad=1)
 ax1.grid(True)
 ax2.grid(False)
 plt.show()
 
 # Volatilidad anualizada.
-VAM = (252**0.5)*(100 * df["Daily Return"].std())
-print('> Volatilidad Anualizada:', '%.6s' % VAM, '%')
 
-# Obtenemos el valor mínimo y máximo de la volatilidad anualizada así como las fechas
-# en las que ambos valores son producidos.
-Fecha_Minima_Volatilidad = df.Volatilidad_14_Dias_Anualizada[df.Volatilidad_14_Dias_Anualizada == df['Volatilidad_14_Dias_Anualizada'].min()].index.strftime('%Y-%m-%d').tolist()
-Fecha_Maxima_Volatilidad = df.Volatilidad_14_Dias_Anualizada[df.Volatilidad_14_Dias_Anualizada == df['Volatilidad_14_Dias_Anualizada'].max()].index.strftime('%Y-%m-%d').tolist()
+VAM = df['Daily Return'].std() * 100 * (252 ** 0.5)
+print("> Volatilidad Anualizada:", '%.6s' % VAM, "%")
 
-print('> La Mínima Volatilidad Anualizada fue de', '%.6s' % (df['Volatilidad_14_Dias_Anualizada'].min()), '%', 'registrada el', Fecha_Minima_Volatilidad[0])
-print('> La Máxima Volatilidad Anualizada fue de', '%.6s' % (df['Volatilidad_14_Dias_Anualizada'].max()), '%', 'registrada el', Fecha_Maxima_Volatilidad[0])
+# Obtenemos el valor mínimo y máximo de la volatilidad anualizada
+# así como las fechas en las que ambos valores son producidos.
+
+min_vol_date = df['Vol. Anualizada'].idxmin().strftime('%Y-%m-%d')
+max_vol_date = df['Vol. Anualizada'].idxmax().strftime('%Y-%m-%d')
+
+print("> La Mínima Vol. Anualizada fue de", '%.6s' % (df['Vol. Anualizada'].min()), "%", "registrada el", min_vol_date)
+print("> La Máxima Vol. Anualizada fue de", '%.6s' % (df['Vol. Anualizada'].max()), "%", "registrada el", max_vol_date)
 
 # Obtenemos el promedio sobre el rango porcentual de los días negativos.
-df['DiasNegativos'] = np.where(df['Daily Return'] < 0, 100*(df['High']-df['Low'])/df['Low'], 0)
-df_dias_negativos = df.loc[df['DiasNegativos'] != 0]
-DN = df_dias_negativos['DiasNegativos'].mean()
-print('> Rango Medio días Negativos:', '%.4s' % DN, '%')
+
+df['Negative Days'] = np.where(df['Daily Return'] < 0, 100 * (df['High'] - df['Low']) / df['Low'], 0)
+df_negative_days = df.loc[df['Negative Days'] != 0]
+ND = df_negative_days['Negative Days'].mean()
+print("> Rango Medio en los días negativos:", '%.4s' % ND, "%")
 
 # Obtenemos el promedio del rango porcentual de los días positivos.
-df['DiasPositivos'] = np.where(df['Daily Return'] > 0, 100*(df['High']-df['Low'])/df['Low'], 0)
-df_dias_positivos = df.loc[df['DiasPositivos'] != 0]
-DP = df_dias_positivos['DiasPositivos'].mean()
-print('> Rango Medio días Positivos:', '%.4s' % DP, '%')
 
-# Calculamos el ratio del rango entre días positivos y negativos.
-print('> Ratio RDN/RDP', '%.4s' % (DN/DP), '%')
+df['Positive Days'] = np.where(df['Daily Return'] > 0, 100 * (df['High'] - df['Low']) / df['Low'], 0)
+df_positive_days = df.loc[df['Positive Days'] != 0]
+PD = df_positive_days['Positive Days'].mean()
+print("> Rango Medio en los días positivos:", '%.4s' % PD, "%")
+
+# Calculamos el ratio del rango entre días negativos (RDN) y positivos (RDP).
+
+print("> Ratio RDN/RDP", '%.4s' % (ND / PD), "%")

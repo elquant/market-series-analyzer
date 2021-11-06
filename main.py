@@ -22,7 +22,6 @@ app.layout = ui.page_layout()
 def update_analysis_results(ticker_symbol, from_date, to_date):
     if len(ticker_symbol) < 3:
         return
-
     return ui.build_results_page(ticker_symbol, from_date, to_date)
 
 
